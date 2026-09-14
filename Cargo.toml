@@ -1,0 +1,42 @@
+[workspace]
+
+[package]
+name = "magnetar-provider-wgpu"
+version = "0.1.0"
+edition = "2024"
+# Never published to crates.io independently -- this crate is only
+# buildable from within a checkout of the parent Magnetar repository,
+# matching every other externalized module's own Cargo.toml.
+publish = false
+
+[dependencies]
+# Path dependency, not a published crate: this crate is only buildable
+# from within a checkout of the parent Magnetar repository, with this
+# submodule checked out at `providers/wgpu`.
+magnetar-runtime = { path = "../../magnetar-runtime" }
+# `wgpu` is a mature (35M+ downloads), widely-used cross-platform compute/
+# graphics API: on this development machine (Windows, real NVIDIA GPU) it
+# selects the real Vulkan backend; on macOS it selects the real Metal
+# backend automatically, with zero Metal-specific code in this crate --
+# the whole reason this Provider exists as `wgpu`-based rather than a
+# hand-written, unverifiable Metal FFI skeleton (see this crate's own
+# README). No build-time dependency on any specific GPU vendor driver:
+# `wgpu` itself dynamically loads the platform's real graphics driver at
+# runtime, the same "no hardware required to compile" posture
+# `providers/cuda`'s own `cudarc` dependency establishes for CUDA.
+wgpu = "30"
+# The standard, extremely widely-used (31M+ downloads) sync wrapper for
+# wgpu's own async `request_adapter`/`request_device` calls -- this
+# Provider's `new()` must be a plain synchronous constructor, matching
+# every other Provider in this workspace (`CudaProvider::new()`,
+# `ReferenceCpuProvider::new()`), not an async one.
+pollster = "1"
+
+[dev-dependencies]
+# Used only by conformance tests, as the numerical oracle `provider-
+# roadmap` requires optimized Providers be checked against (the same
+# convention `providers/cuda`'s own dev-dependency on this crate already
+# establishes): compares this crate's real GPU `add` kernel output
+# directly against `providers/cpu`'s reference implementation on the same
+# fixtures.
+magnetar-provider-cpu = { path = "../cpu" }
