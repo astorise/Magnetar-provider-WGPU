@@ -50,6 +50,27 @@ available from this development environment that the *Rust code calling
 wgpu* is correct, which is the only part of the real Metal behavior this
 crate's own source controls.
 
+**A real, structural limitation on Apple Silicon specifically, independent
+of correctness**: WGSL compute shaders (what `wgpu` compiles to Metal
+Shading Language) cannot reach Apple Silicon's `simdgroup_matrix`
+matrix-multiply-accumulate instructions (the M-series equivalent of
+NVIDIA Tensor Cores) or route through Metal Performance Shaders to the
+AMX matrix coprocessor -- neither is exposed through `wgpu`'s
+cross-platform abstraction at all. This matters unevenly across LLM
+inference's two phases: **decode** (one token at a time) is memory-
+bandwidth-bound, where `wgpu` should perform close to native Metal, since
+Apple's unified memory bandwidth is a hardware property reached the same
+way regardless of API; **prefill** (processing the prompt) is
+compute-bound, exactly where `simdgroup_matrix`/AMX/MPS access matters
+most, and where this crate is expected to be substantially slower than
+native Metal or Apple's own MLX framework -- not measured here (no Apple
+Silicon hardware available anywhere in this repository's tooling), a real
+expected gap stated honestly, not a measured one. See
+[`providers/metal`](https://github.com/astorise/Magnetar-provider-Metal)'s
+own README: a native Metal Provider for the compute-bound prefill kernels
+specifically remains real, wanted future work, not superseded by this
+crate.
+
 **What is explicitly not implemented yet**: the rest of the required
 Operator set (`matmul`/`rmsnorm`/`rope`/`attention`/`silu`/`residual-add`/
 ...) `providers/cpu`/`providers/cuda` both implement, and the full
