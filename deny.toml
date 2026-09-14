@@ -1,0 +1,47 @@
+# cargo-deny policy for the WGPU Provider submodule.
+#
+# The root Magnetar repository's own `deny.toml`/`quality.yml` `cargo-deny`
+# job deliberately never sees this crate: it checks out without submodules
+# and runs `cargo deny --all-features check` against only
+# `magnetar-cli`/`magnetar-runtime` (`externalize-runtime-extension-modules`'s
+# "zero compile-time dependency on any externalized module"). `wgpu` and
+# `pollster` -- this Provider's new dependencies -- therefore never enter
+# any `cargo deny` graph until this file exists, mirroring
+# `providers/cuda/deny.toml`'s own precedent for `cudarc`. Run locally with:
+#   cargo deny --manifest-path providers/wgpu/Cargo.toml check
+# CI: `.github/workflows/quality.yml`'s `provider-integration` job.
+
+[advisories]
+yanked = "deny"
+ignore = []
+
+[bans]
+multiple-versions = "warn"
+wildcards = "deny"
+allow-wildcard-paths = true
+skip = []
+
+[licenses]
+allow = [
+    "MIT",
+    "Apache-2.0",
+    "Apache-2.0 WITH LLVM-exception",
+    "BSD-2-Clause",
+    "BSD-3-Clause",
+    "ISC",
+    "Unicode-3.0",
+    "Zlib",
+]
+confidence-threshold = 0.9
+# This crate itself is a submodule of Magnetar, never published to
+# crates.io independently (`publish = false`) -- cargo-deny would
+# otherwise flag it as "unlicensed" for lacking its own SPDX `license`
+# field, which is not the question this file exists to answer (that
+# question is about `wgpu`/`pollster` and the rest of the real dependency
+# graph, checked in full below regardless of this setting).
+private = { ignore = true }
+
+[sources]
+unknown-registry = "deny"
+unknown-git = "deny"
+allow-registry = ["https://github.com/rust-lang/crates.io-index"]
