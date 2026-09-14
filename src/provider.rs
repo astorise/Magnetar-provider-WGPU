@@ -70,11 +70,18 @@ impl WgpuProvider {
     }
 
     fn discover_device() -> Option<(wgpu::AdapterInfo, wgpu::Device, wgpu::Queue)> {
-        let instance = wgpu::Instance::new(&wgpu::InstanceDescriptor::default());
+        // Headless compute only, no window/surface -- no display handle
+        // needed (`new_with_display_handle` is only for a Provider that
+        // also presents to a real window/swapchain, out of scope here).
+        let instance = wgpu::Instance::new(wgpu::InstanceDescriptor::new_without_display_handle());
         let adapter = pollster::block_on(instance.request_adapter(&wgpu::RequestAdapterOptions {
             power_preference: wgpu::PowerPreference::HighPerformance,
             compatible_surface: None,
             force_fallback_adapter: false,
+            // This Provider is never exposed to untrusted content (e.g. a
+            // browser sandbox); real, unbucketed limits are the correct
+            // choice for a trusted, local desktop application.
+            apply_limit_buckets: false,
         }))
         .ok()?;
         let info = adapter.get_info();
@@ -82,6 +89,7 @@ impl WgpuProvider {
             label: Some("magnetar-wgpu-device"),
             required_features: wgpu::Features::empty(),
             required_limits: wgpu::Limits::default(),
+            experimental_features: wgpu::ExperimentalFeatures::disabled(),
             memory_hints: wgpu::MemoryHints::default(),
             trace: wgpu::Trace::Off,
         }))
@@ -170,7 +178,10 @@ mod tests {
     #[test]
     fn add_computes_the_correct_result_on_real_hardware() {
         let provider = WgpuProvider::new();
-        assert!(provider.is_available(), "requires a real GPU on this machine");
+        assert!(
+            provider.is_available(),
+            "requires a real GPU on this machine"
+        );
         let a = vec![1.0f32, 2.0, 3.0, 4.5, -1.5];
         let b = vec![10.0f32, 20.0, 30.0, 0.5, 1.5];
         let result = provider.add(&a, &b);
@@ -184,12 +195,48 @@ mod tests {
     #[test]
     fn add_handles_a_length_not_a_multiple_of_the_workgroup_size() {
         let provider = WgpuProvider::new();
-        assert!(provider.is_available(), "requires a real GPU on this machine");
+        assert!(
+            provider.is_available(),
+            "requires a real GPU on this machine"
+        );
         let count = 5000;
         let a: Vec<f32> = (0..count).map(|i| i as f32).collect();
         let b: Vec<f32> = (0..count).map(|i| (i as f32) * 2.0).collect();
         let result = provider.add(&a, &b);
         let expected: Vec<f32> = (0..count).map(|i| (i as f32) * 3.0).collect();
         assert_eq!(result, expected);
+    }
+
+    /// Conformance: this Provider's real GPU `add` output must match
+    /// `providers/cpu`'s reference implementation exactly, for the same
+    /// real (non-trivial, non-integer) random-ish input -- the same
+    /// numerical-oracle convention `providers/cuda`'s own conformance
+    /// tests already establish for its own `add` Kernel.
+    #[test]
+    fn add_matches_the_reference_cpu_implementation() {
+        let provider = WgpuProvider::new();
+        assert!(
+            provider.is_available(),
+            "requires a real GPU on this machine"
+        );
+
+        let count = 777usize;
+        let a: Vec<f32> = (0..count)
+            .map(|i| ((i as f32) * 0.3171).sin() * 17.0)
+            .collect();
+        let b: Vec<f32> = (0..count)
+            .map(|i| ((i as f32) * 1.7291).cos() * -4.0)
+            .collect();
+
+        let gpu_result = provider.add(&a, &b);
+
+        let shape = vec![count as u64];
+        let tensor_a =
+            magnetar_runtime::HostTensor::new(shape.clone(), a.clone()).expect("valid tensor a");
+        let tensor_b = magnetar_runtime::HostTensor::new(shape, b.clone()).expect("valid tensor b");
+        let cpu_result =
+            magnetar_provider_cpu::add(&tensor_a, &tensor_b).expect("reference CPU add succeeds");
+
+        assert_eq!(gpu_result, cpu_result.data);
     }
 }

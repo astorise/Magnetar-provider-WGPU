@@ -30,7 +30,7 @@ pub fn add(device: &wgpu::Device, queue: &wgpu::Queue, a: &[f32], b: &[f32]) -> 
     use wgpu::util::DeviceExt;
 
     let element_count = a.len();
-    let byte_size = (element_count * std::mem::size_of::<f32>()) as wgpu::BufferAddress;
+    let byte_size = std::mem::size_of_val(a) as wgpu::BufferAddress;
 
     let buffer_a = device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
         label: Some("magnetar-wgpu-add-a"),
@@ -108,13 +108,17 @@ pub fn add(device: &wgpu::Device, queue: &wgpu::Queue, a: &[f32], b: &[f32]) -> 
     slice.map_async(wgpu::MapMode::Read, move |result| {
         let _ = sender.send(result);
     });
-    device.poll(wgpu::PollType::Wait).expect("device.poll failed");
+    device
+        .poll(wgpu::PollType::wait_indefinitely())
+        .expect("device.poll failed");
     receiver
         .recv()
         .expect("map_async callback never fired")
         .expect("failed to map staging buffer for read");
 
-    let mapped = slice.get_mapped_range();
+    let mapped = slice
+        .get_mapped_range()
+        .expect("staging buffer was just successfully mapped above");
     let result: Vec<f32> = bytemuck_cast_to_f32_vec(&mapped);
     drop(mapped);
     buffer_staging.unmap();
@@ -138,12 +142,10 @@ fn bytemuck_cast_f32_slice(values: &[f32]) -> &[u8] {
 }
 
 fn bytemuck_cast_to_f32_vec(bytes: &[u8]) -> Vec<f32> {
-    assert!(
-        bytes.len().is_multiple_of(std::mem::size_of::<f32>()),
-        "byte length is not a multiple of f32's size"
-    );
     bytes
-        .chunks_exact(std::mem::size_of::<f32>())
-        .map(|chunk| f32::from_ne_bytes(chunk.try_into().unwrap()))
+        .as_chunks::<4>()
+        .0
+        .iter()
+        .map(|chunk| f32::from_ne_bytes(*chunk))
         .collect()
 }
