@@ -4,16 +4,18 @@
 name = "magnetar-provider-wgpu"
 version = "0.1.0"
 edition = "2024"
-# Never published to crates.io independently -- this crate is only
-# buildable from within a checkout of the parent Magnetar repository,
-# matching every other externalized module's own Cargo.toml.
-publish = false
+license = "MIT"
+description = "WebGPU (wgpu) Provider for the Magnetar inference runtime."
+repository = "https://github.com/astorise/Magnetar-provider-WGPU"
+readme = "README.md"
+keywords = ["ai", "inference", "magnetar"]
+categories = ["science", "hardware-support"]
+rust-version = "1.98"
 
 [dependencies]
-# Path dependency, not a published crate: this crate is only buildable
-# from within a checkout of the parent Magnetar repository, with this
-# submodule checked out at `providers/wgpu`.
-magnetar-runtime = { path = "../../magnetar-runtime" }
+# `path` resolves inside a checkout of the parent Magnetar repository;
+# `version` is what `cargo publish` records for crates.io consumers.
+magnetar-runtime = { version = "0.1.0", path = "../../magnetar-runtime" }
 # `wgpu` is a mature (35M+ downloads), widely-used cross-platform compute/
 # graphics API: on this development machine (Windows, real NVIDIA GPU) it
 # selects the real Vulkan backend; on macOS it selects the real Metal
