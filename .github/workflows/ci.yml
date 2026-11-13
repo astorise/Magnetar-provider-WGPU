@@ -28,4 +28,6 @@ jobs:
     uses: astorise/Magnetar/.github/workflows/submodule-ci.yml@claude/awesome-davinci-t65edq
     with:
       module-path: providers/wgpu
+      # The Reference CPU oracle, a path dependency of the tests.
+      siblings: providers/cpu
       apt-packages: mesa-vulkan-drivers
