@@ -994,6 +994,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "magnetar-provider-api"
+version = "1.0.0"
+dependencies = [
+ "magnetar-core",
+ "magnetar-graph",
+ "magnetar-kernel",
+]
+
+[[package]]
 name = "magnetar-provider-cpu"
 version = "1.0.0"
 dependencies = [
@@ -1021,6 +1030,7 @@ dependencies = [
  "magnetar-graph",
  "magnetar-kernel",
  "magnetar-model",
+ "magnetar-provider-api",
  "serde",
  "serde_json",
  "serde_norway",
