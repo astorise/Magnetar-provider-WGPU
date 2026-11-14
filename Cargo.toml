@@ -15,7 +15,8 @@ rust-version = "1.98"
 [dependencies]
 # `path` resolves inside a checkout of the parent Magnetar repository;
 # `version` is what `cargo publish` records for crates.io consumers.
-magnetar-runtime = { version = "1.0.0", path = "../../magnetar-runtime" }
+magnetar-core = { version = "1.0.0", path = "../../magnetar-core" }
+magnetar-provider-api = { version = "1.0.0", path = "../../magnetar-provider-api" }
 # `wgpu` is a mature (35M+ downloads), widely-used cross-platform compute/
 # graphics API: on this development machine (Windows, real NVIDIA GPU) it
 # selects the real Vulkan backend; on macOS it selects the real Metal

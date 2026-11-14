@@ -100,6 +100,10 @@ on this crate (the same externalization invariant every Provider/Component/
 Format module in this workspace observes). It is pinned into the main
 Magnetar repository as a git submodule at `providers/wgpu`.
 
+This crate depends on `magnetar-provider-api` (the Provider contract) and
+`magnetar-core`, not on `magnetar-runtime`: Runtime changes above those layers
+no longer reach its lockfile.
+
 ## Continuous integration
 
 `.github/workflows/ci.yml` runs on every pull request and on every push to

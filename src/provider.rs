@@ -30,8 +30,10 @@
 //! treated the same way `CudaProvider::new()` treats a missing CUDA
 //! driver -- [`ProviderHealth::Unavailable`], not a construction error.
 
-use magnetar_runtime::affinity::ProviderHealth;
-use magnetar_runtime::provider::{Provider, ProviderError, ProviderMetadata, ProviderRegistry};
+use magnetar_core::provider_status::ProviderHealth;
+use magnetar_provider_api::provider_api::{
+    Provider, ProviderError, ProviderMetadata, ProviderRegistry,
+};
 
 const WGPU_PROVIDER_NAME: &str = "wgpu";
 const WGPU_PROVIDER_VERSION: &str = env!("CARGO_PKG_VERSION");
@@ -242,9 +244,10 @@ mod tests {
         let gpu_result = provider.add(&a, &b);
 
         let shape = vec![count as u64];
-        let tensor_a =
-            magnetar_runtime::HostTensor::new(shape.clone(), a.clone()).expect("valid tensor a");
-        let tensor_b = magnetar_runtime::HostTensor::new(shape, b.clone()).expect("valid tensor b");
+        let tensor_a = magnetar_provider_api::HostTensor::new(shape.clone(), a.clone())
+            .expect("valid tensor a");
+        let tensor_b =
+            magnetar_provider_api::HostTensor::new(shape, b.clone()).expect("valid tensor b");
         let cpu_result =
             magnetar_provider_cpu::add(&tensor_a, &tensor_b).expect("reference CPU add succeeds");
 
